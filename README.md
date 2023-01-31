@@ -73,6 +73,16 @@ Our `hooks.json` file will now look like this:
   command-working-directory: "/var/webhook"
 ```
 
+Posix-style command arguments:
+
+```yaml
+- id: echo-webhook
+  execute-command: "/bin/echo"
+  pass-arguments-to-command:
+  - source: posix
+    name: "'Hello World' >test.txt 2>/dev/null"
+```
+
 You can now run [webhook][w] using
 ```bash
 $ /path/to/webhook -hooks hooks.json -verbose

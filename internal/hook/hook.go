@@ -26,6 +26,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/anmitsu/go-shlex"
 	"github.com/ghodss/yaml"
 )
 
@@ -35,6 +36,7 @@ const (
 	SourceQuery          string = "url"
 	SourceQueryAlias     string = "query"
 	SourcePayload        string = "payload"
+	SourcePosix          string = "posix"
 	SourceRawRequestBody string = "raw-request-body"
 	SourceRequest        string = "request"
 	SourceString         string = "string"
@@ -595,7 +597,7 @@ func (h *Hook) ParseJSONParameters(r *Request) []error {
 		} else {
 			var newArg map[string]interface{}
 
-			decoder := json.NewDecoder(strings.NewReader(string(arg)))
+			decoder := json.NewDecoder(strings.NewReader(string(arg[0])))
 			decoder.UseNumber()
 
 			err := decoder.Decode(&newArg)
@@ -645,14 +647,22 @@ func (h *Hook) ExtractCommandArguments(r *Request) ([]string, []error) {
 	args = append(args, h.ExecuteCommand)
 
 	for i := range h.PassArgumentsToCommand {
-		arg, err := h.PassArgumentsToCommand[i].Get(r)
+		var argSlice []string
+		var err error
+		if h.PassArgumentsToCommand[i].Source == SourcePosix {
+			argSlice, err = shlex.Split(h.PassArgumentsToCommand[i].Name, true)
+		} else {
+			var arg string
+			arg, err = h.PassArgumentsToCommand[i].Get(r)
+			argSlice = []string{arg}
+		}
 		if err != nil {
 			args = append(args, "")
 			errors = append(errors, &ArgumentError{h.PassArgumentsToCommand[i]})
 			continue
 		}
 
-		args = append(args, arg)
+		args = append(args, argSlice...)
 	}
 
 	if len(errors) > 0 {
